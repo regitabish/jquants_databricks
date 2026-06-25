@@ -1,0 +1,6 @@
+resources:
+  schemas:
+    market_data:
+      name: ${var.schema}
+      catalog_name: ${var.catalog}
+      comment: Managed by the market-data Databricks bundle.

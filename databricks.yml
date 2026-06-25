@@ -1,0 +1,59 @@
+bundle:
+  name: market-data
+
+databricks_cli_version: ">=0.229.0"
+
+include:
+  - resources/*.yml
+
+artifacts:
+  default:
+    type: whl
+    path: .
+    build: python -m build --wheel
+    dynamic_version: true
+
+variables:
+  catalog:
+    description: Unity Catalog catalog containing the market data schema.
+    default: main
+  schema:
+    description: Unity Catalog schema for market data tables.
+    default: market_data
+  table_name:
+    description: Delta table name for daily candles.
+    default: daily_candles
+  jquants_secret_scope:
+    description: Databricks secret scope containing the J-Quants API key.
+    default: market-data
+  jquants_secret_key:
+    description: Secret key containing the J-Quants API key.
+    default: jquants-api-key
+  lookback_days:
+    description: Number of recent calendar days fetched on each run.
+    default: "7"
+  request_interval_seconds:
+    description: Delay between J-Quants API requests.
+    default: "0.2"
+  serverless_environment_version:
+    description: Databricks serverless environment version.
+    default: "5"
+  schedule_pause_status:
+    description: Initial schedule status.
+    default: PAUSED
+
+targets:
+  dev:
+    default: true
+    mode: development
+    variables:
+      schema: market_data_dev
+    workspace:
+      root_path: ~/.bundle/${bundle.name}/${bundle.target}
+
+  prod:
+    mode: production
+    variables:
+      schema: market_data
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}

@@ -157,6 +157,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Databricks bundle local state
+.databricks/
+
 # Spyder project settings
 .spyderproject
 .spyproject
