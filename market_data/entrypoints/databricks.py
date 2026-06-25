@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Mapping
+from typing import Callable, Mapping
 
 from market_data.infrastructure.settings import JQuantsJobSettings
 
@@ -34,6 +34,21 @@ def _environment_overrides(
     }
 
 
+def _load_environment(
+    overrides: Mapping[str, str],
+    dotenv_loader: Callable[[], object] | None = None,
+) -> dict[str, str]:
+    """`.env`を読み込んだ後、Jobパラメーターを上書きする。"""
+
+    if dotenv_loader is None:
+        from dotenv import load_dotenv
+
+        dotenv_loader = load_dotenv
+
+    dotenv_loader()
+    return {**os.environ, **overrides}
+
+
 def main(
     start_date: str = "",
     end_date: str = "",
@@ -47,24 +62,24 @@ def main(
 ) -> None:
     """Jobパラメーターを設定へ変換し、J-Quants取込を実行する。"""
 
+    environ = _load_environment(
+        _environment_overrides(
+            start_date=start_date,
+            end_date=end_date,
+            lookback_days=lookback_days,
+            universe_file=universe_file,
+            output_table=output_table,
+            write_mode=write_mode,
+            request_interval_seconds=request_interval_seconds,
+        )
+    )
+
     from market_data.bootstrap import run_jquants_job
 
     try:
         from pyspark.dbutils import DBUtils
         from pyspark.sql import SparkSession
     except ModuleNotFoundError:
-        environ: Mapping[str, str] = {
-            **os.environ,
-            **_environment_overrides(
-                start_date=start_date,
-                end_date=end_date,
-                lookback_days=lookback_days,
-                universe_file=universe_file,
-                output_table=output_table,
-                write_mode=write_mode,
-                request_interval_seconds=request_interval_seconds,
-            ),
-        }
         settings = JQuantsJobSettings.from_environment(environ)
         run_jquants_job(spark_session=None, settings=settings)
         return
@@ -73,18 +88,6 @@ def main(
         "market-data-jquants-ingestion"
     ).getOrCreate()
 
-    environ: dict[str, str] = {
-        **os.environ,
-        **_environment_overrides(
-            start_date=start_date,
-            end_date=end_date,
-            lookback_days=lookback_days,
-            universe_file=universe_file,
-            output_table=output_table,
-            write_mode=write_mode,
-            request_interval_seconds=request_interval_seconds,
-        ),
-    }
     if not environ.get("JQUANTS_API_KEY", "").strip():
         if not secret_scope.strip() or not secret_key.strip():
             raise RuntimeError(
