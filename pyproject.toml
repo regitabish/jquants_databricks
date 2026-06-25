@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market_data"
+version = "0.1.0"
+description = "Market data ingestion application for Databricks"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "jquants-api-client>=2.2.0,<3.0.0",
+  "pandas>=2.0.0,<3.0.0",
+  "python-dotenv>=1.0.0,<2.0.0",
+  "PyYAML>=6.0.0,<7.0.0",
+]
+
+[project.scripts]
+fetch_daily_candles = "market_data.entrypoints.databricks:main"
+
+[tool.setuptools.packages.find]
+include = ["market_data*"]
+
+[tool.setuptools.package-data]
+"market_data.resources" = ["*.yaml"]

@@ -1,0 +1,41 @@
+resources:
+  jobs:
+    daily_market_data:
+      name: daily-market-data
+      description: Fetch daily candles from J-Quants and merge them into Delta.
+      max_concurrent_runs: 1
+
+      schedule:
+        quartz_cron_expression: "0 0 18 ? * MON-FRI"
+        timezone_id: Asia/Tokyo
+        pause_status: ${var.schedule_pause_status}
+
+      tasks:
+        - task_key: ingest_jquants_daily_candles
+          environment_key: default
+          timeout_seconds: 3600
+          max_retries: 2
+          min_retry_interval_millis: 60000
+          retry_on_timeout: true
+          python_wheel_task:
+            package_name: market_data
+            entry_point: fetch_daily_candles
+            named_parameters:
+              lookback_days: "${var.lookback_days}"
+              output_table: "${var.catalog}.${var.schema}.${var.table_name}"
+              write_mode: merge
+              request_interval_seconds: "${var.request_interval_seconds}"
+              secret_scope: "${var.jquants_secret_scope}"
+              secret_key: "${var.jquants_secret_key}"
+          libraries:
+            - whl: ../dist/*.whl
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "${var.serverless_environment_version}"
+            dependencies:
+              - "jquants-api-client>=2.2.0,<3.0.0"
+              - "pandas>=2.0.0,<3.0.0"
+              - "python-dotenv>=1.0.0,<2.0.0"
+              - "PyYAML>=6.0.0,<7.0.0"
